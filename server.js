@@ -1,6 +1,5 @@
 const inquirer = require('inquirer');
-const mysql = require('mysql2');
-const consoleTable = require('console.table');
+const Pool = require('pg').Pool;
 
 const connection = mysql.createConnection({
   host: 'localhost',
