@@ -1,83 +1,106 @@
-// GIVEN a command-line application that accepts user input
-const inquirer = require('inquirer');
+const express = require('express');
 const { Client } = require('pg');
-const { 
-    viewDepartments, 
-    viewRoles, 
-    viewEmployees, 
-    addDepartment, 
-    addRole, 
-    addEmployee, 
-    updateEmployeeRole 
-} = require('./actions');
+require('dotenv').config();
+
+const app = express();
+const port = process.env.PORT || 3001;
 
 const client = new Client({
   host: 'localhost',
-  user: `${process.env.DB_USER}`,
-  password: `${process.env.DB_PASSWORD}`,
-  database: `${process.env.DB_NAME}`,
-  port: process.env.DB_PORT || 3001 // Default port
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 });
 
-// WHEN I start the application
-// THEN I am presented with the following options: view all departments, view all roles, view all employees, add a department, add a role, add an employee, and update an employee role
-async function mainMenu() {
-    try {
-        await client.connect();
-        let exit = false;
+client.connect()
+  .then(() => console.log('Connected to PostgreSQL'))
+  .catch(err => console.error('Connection error', err.stack));
 
-        while (!exit) {
-        const answers = await inquirer.prompt([
-          {
-              type: 'list',
-              name: 'action',
-              message: 'What would you like to do?',
-              choices: [
-              'View all departments',
-              'View all roles',
-              'View all employees',
-              'Add a department',
-              'Add a role',
-              'Add an employee',
-              'Update an employee role',
-              'Quit'
-              ]
-            }
-        ]);
-  
-            switch (action) {
-                case 'View all departments':
-                    await viewDepartments(client);
-                    break;
-                case 'View all roles':
-                    await viewRoles(client);
-                    break;
-                case 'View all employees':
-                    await viewEmployees(client);
-                    break;
-                case 'Add a department':
-                    await addDepartment(client);
-                    break;
-                case 'Add a role':
-                    await addRole(client);
-                    break;
-                case 'Add an employee':
-                    await addEmployee(client);
-                    break;
-                case 'Update an employee role':
-                    await updateEmployeeRole(client);
-                    break;
-                case 'Quit':
-                    exit = true;
-                    console.log('Goodbye!');
-                    break;
-            }
-        }
-    } catch (error) {
-      console.error('An error occurred:', error);
-    } finally {
-      await client.end();
-    }
+const {
+  viewDepartments,
+  viewRoles,
+  viewEmployees,
+  addDepartment,
+  addRole,
+  addEmployee,
+  updateEmployeeRole,
+} = require('./actions')(client);
+
+app.use(express.json());
+
+app.get('/departments', async (req, res) => {
+  try {
+    const result = await viewDepartments();
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching departments', err);
+    res.status(500).send('Server error');
   }
+});
 
-mainMenu(); // Start the application
+app.get('/roles', async (req, res) => {
+  try {
+    const result = await viewRoles();
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching roles', err);
+    res.status(500).send('Server error');
+  }
+});
+
+app.get('/employees', async (req, res) => {
+  try {
+    const result = await viewEmployees();
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching employees', err);
+    res.status(500).send('Server error');
+  }
+});
+
+app.post('/departments', async (req, res) => {
+  try {
+    const result = await addDepartment(req.body.name);
+    res.json(result);
+  } catch (err) {
+    console.error('Error adding department', err);
+    res.status(500).send('Server error');
+  }
+});
+
+app.post('/roles', async (req, res) => {
+  try {
+    const { title, salary, department_id } = req.body;
+    const result = await addRole(title, salary, department_id);
+    res.json(result);
+  } catch (err) {
+    console.error('Error adding role', err);
+    res.status(500).send('Server error');
+  }
+});
+
+app.post('/employees', async (req, res) => {
+  try {
+    const { first_name, last_name, role_id, manager_id } = req.body;
+    const result = await addEmployee(first_name, last_name, role_id, manager_id);
+    res.json(result);
+  } catch (err) {
+    console.error('Error adding employee', err);
+    res.status(500).send('Server error');
+  }
+});
+
+app.put('/employees/:id/role', async (req, res) => {
+  try {
+    const { role_id } = req.body;
+    const result = await updateEmployeeRole(req.params.id, role_id);
+    res.json(result);
+  } catch (err) {
+    console.error('Error updating employee role', err);
+    res.status(500).send('Server error');
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
