@@ -3,6 +3,9 @@
 ## Description
 A simple sql based, command line opperated way to track employee's and their positions
 
+## Walkthrough
+https://github.com/user-attachments/assets/faa7cf28-6846-4c45-976d-496eea5f34bf
+
 ## Table of Contents
 - [Installation](#installation)
 - [Usage](#usage)
